@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Creator - AI 提示生成器</title>
+    <style>
+        body { font-family: 'Roboto', sans-serif; background: linear-gradient(to bottom, #f0f8ff, #ffffff); margin: 0; padding: 20px; transition: background 0.3s, color 0.3s; }
+        .dark-mode { background: linear-gradient(to bottom, #0a2540, #001f3f); color: #fff; }
+        .container { max-width: 1200px; margin: auto; }
+        h1 { text-align: center; background: linear-gradient(to right, #007bff, #00c6ff); -webkit-background-clip: text; color: transparent; }
+        .top-buttons-row {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        #search { padding: 10px; width: 200px; border: 1px solid #007bff; border-radius: 5px; }
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .input-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .input-cell {
+            flex: 1 1 220px;
+            min-width: 220px;
+            max-width: 100%;
+        }
+        label { margin-bottom: 4px; font-size: 0.95em; display: block; }
+        input, select { padding: 10px; border: 1px solid #007bff; border-radius: 5px; transition: transform 0.2s; width: 100%; box-sizing: border-box; }
+        input:hover, select:hover { transform: scale(1.02); }
+        button, .reset-btn { min-width: 90px; }
+        button { background: linear-gradient(to right, #007bff, #00c6ff); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; transition: opacity 0.3s; }
+        button:hover, .reset-btn:hover { opacity: 0.9; }
+        .reset-btn { background: #ffc107; color: #333; border: none; padding: 10px 20px; border-radius: 5px; }
+        .template-library { display: flex; flex-direction: column; gap: 25px; margin-bottom: 30px; }
+        .framework-type-section { margin-bottom: 12px; }
+        .framework-type-title { font-size: 1.1em; font-weight: bold; margin: 10px 0 6px 5px; }
+        .framework-type-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
+        .template-card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transition: transform 0.3s; cursor: pointer; }
+        .template-card:hover { transform: scale(1.05); }
+        .dark-mode .template-card { background: #001f3f; }
+        .result-section { margin-top: 20px; }
+        .prompt-item { background: #f9f9f9; padding: 10px; margin-bottom: 10px; border-radius: 5px; position: relative; animation: fadeIn 0.5s; }
+        .dark-mode .prompt-item { background: #0a2540; }
+        .copy-btn { position: absolute; right: 10px; top: 10px; background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 3px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @media (max-width: 900px) {
+            .input-row { flex-direction: column; }
+            .input-cell { min-width: 0; }
+        }
+        @media (max-width: 700px) {
+            .top-buttons-row, .controls { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 id="title">Prompt Creator - AI 提示生成器</h1>
+        <div class="top-buttons-row">
+            <button id="mode-toggle" aria-label="切換黑暗模式">切換黑暗模式</button>
+            <button id="lang-toggle" aria-label="切換語言">English</button>
+        </div>
+        <div class="controls">
+            <input id="search" placeholder="搜尋框架..." aria-label="搜尋框架">
+            <button class="reset-btn" id="reset-btn" type="button">清空結果</button>
+        </div>
+        <form class="input-section" onsubmit="event.preventDefault();generatePrompt();">
+            <div class="input-row">
+                <div class="input-cell">
+                    <label for="theme" id="theme-label">主題</label>
+                    <input id="theme" placeholder="輸入主題 (e.g., 網頁設計最佳實踐)" aria-label="主題">
+                </div>
+                <div class="input-cell">
+                    <label for="framework" id="framework-label">框架</label>
+                    <select id="framework" aria-label="選擇框架"></select>
+                </div>
+            </div>
+            <div class="input-row">
+                <div class="input-cell">
+                    <label for="context" id="context-label">上下文</label>
+                    <input id="context" placeholder="可選上下文" aria-label="上下文">
+                </div>
+                <div class="input-cell">
+                    <label for="format" id="format-label">格式</label>
+                    <select id="format" aria-label="選擇格式">
+                        <option value="JSON">JSON</option>
+                        <option value="Markdown">Markdown</option>
+                    </select>
+                </div>
+                <div class="input-cell" style="display: flex; align-items: flex-end;">
+                    <button type="submit" id="gen-btn" style="width:100%;">生成</button>
+                </div>
+            </div>
+        </form>
+        <h2 id="library-title">Prompt 模板庫</h2>
+        <div class="template-library" id="template-library"></div>
+        <h2 id="results-title">生成結果</h2>
+        <div class="result-section" id="results"><div id="no-result-msg" style="color:#888;">尚無生成結果</div></div>
+    </div>
+    <script>
+        let lang = 'zh'; // Default Chinese
+        const translations = {
+            zh: {
+                title: 'Prompt Creator - AI 提示生成器',
+                library: 'Prompt 模板庫',
+                results: '生成結果',
+                search: '搜尋框架...',
+                theme: '輸入主題',
+                context: '可選上下文',
+                generate: '生成',
+                select_framework: '選擇框架',
+                format: '選擇格式',
+                copy: '複製',
+                reset: '清空結果',
+                no_result: '尚無生成結果',
+                framework: '框架',
+                type: '類型',
+                label_theme: '主題',
+                label_context: '上下文',
+                label_format: '格式',
+                label_framework: '框架'
+            },
+            en: {
+                title: 'Prompt Creator - AI Prompt Generator',
+                library: 'Prompt Template Library',
+                results: 'Generated Results',
+                search: 'Search Frameworks...',
+                theme: 'Enter Theme',
+                context: 'Optional Context',
+                generate: 'Generate',
+                select_framework: 'Select Framework',
+                format: 'Select Format',
+                copy: 'Copy',
+                reset: 'Clear Results',
+                no_result: 'No results yet',
+                framework: 'Framework',
+                type: 'Type',
+                label_theme: 'Theme',
+                label_context: 'Context',
+                label_format: 'Format',
+                label_framework: 'Framework'
+            }
+        };
+
+        const frameworkTypes = {
+            '探索型': { zh: '探索型', en: 'Exploratory', color: '#17a2b8' },
+            '結構型': { zh: '結構型', en: 'Structured', color: '#28a745' },
+            '創意型': { zh: '創意型', en: 'Creative', color: '#ffc107' },
+            '決策型': { zh: '決策型', en: 'Decision', color: '#fd7e14' },
+            '教學型': { zh: '教學型', en: 'Educational', color: '#6610f2' }
+        };
+
+        const frameworks = {
+            PAR: { type: '結構型', keywords: { zh: ['問題','行動','結果'], en: ['Problem','Action','Result'] }, desc: { zh: '定義問題並建議解決方案', en: 'Define problem and suggest solutions' }, example: { zh: '問題: 如何優化 UI？', en: 'Problem: How to optimize UI?' } },
+            RTF: { type: '結構型', keywords: { zh: ['角色','任務','格式'], en: ['Role','Task','Format'] }, desc: { zh: '指定角色和輸出格式', en: 'Specify role and output format' }, example: { zh: '角色: 設計師', en: 'Role: Designer' } },
+            TAG: { type: '結構型', keywords: { zh: ['目標','行動','目標'], en: ['Target','Action','Goal'] }, desc: { zh: '聚焦目標和行動', en: 'Focus on target and action' }, example: { zh: '目標: 學生', en: 'Target: Students' } },
+            BAB: { type: '結構型', keywords: { zh: ['之前','之後','橋樑'], en: ['Before','After','Bridge'] }, desc: { zh: '對比前後狀態', en: 'Compare before and after' }, example: { zh: '之前: 手動', en: 'Before: Manual' } },
+            CARE: { type: '結構型', keywords: { zh: ['情境','行動','結果','評估'], en: ['Context','Action','Result','Evaluation'] }, desc: { zh: '提供情境和評估', en: 'Provide context and evaluation' }, example: { zh: '情境: 項目開始', en: 'Context: Project start' } },
+            CREATE: { type: '創意型', keywords: { zh: ['上下文','角色','例子','行動','語氣','輸出'], en: ['Context','Role','Example','Action','Tone','Output'] }, desc: { zh: '全面提示框架', en: 'Comprehensive prompt framework' }, example: { zh: '上下文: 設計工具', en: 'Context: Design tool' } },
+            CoT: { type: '探索型', keywords: { zh: ['逐步推理'], en: ['Chain of Thought'] }, desc: { zh: '鼓勵逐步推理', en: 'Encourage step-by-step reasoning' }, example: { zh: '逐步思考...', en: 'Think step-by-step...' } },
+            RACEF: { type: '決策型', keywords: { zh: ['迭代細化'], en: ['Iterative Refinement'] }, desc: { zh: '策略性輸入精確輸出', en: 'Strategic input for precise output' }, example: { zh: '細化步驟', en: 'Refine steps' } },
+            CRISPE: { type: '創意型', keywords: { zh: ['能力','洞察','聲明','個性','實驗'], en: ['Capacity','Insight','Statement','Personality','Experiment'] }, desc: { zh: '平衡精確與創造', en: 'Balance precision and creativity' }, example: { zh: '個性: 創意', en: 'Personality: Creative' } },
+            TreeOfThought: { type: '探索型', keywords: { zh: ['節點','邊緣','結束'], en: ['Nodes','Edges','Results'] }, desc: { zh: '結構化思考', en: 'Structured thinking' }, example: { zh: '樹狀分支', en: 'Tree branches' } },
+            RICE: { type: '決策型', keywords: { zh: ['Reach','Impact','Confidence','Effort'], en: ['Reach','Impact','Confidence','Effort'] }, desc: { zh: '評估想法優先級', en: 'Prioritize ideas' }, example: { zh: '影響: 高', en: 'Impact: High' } },
+            RELIC: { type: '結構型', keywords: { zh: ['角色','強調','限制','資訊','挑戰'], en: ['Role','Emphasis','Limitation','Information','Challenge'] }, desc: { zh: '清晰目標導向', en: 'Clear goal-oriented' }, example: { zh: '限制: 100字', en: 'Limitation: 100 words' } },
+            SCAMPER: { type: '創意型', keywords: { zh: ['替代','組合','適應','修改','用途','消除','反轉'], en: ['Substitute','Combine','Adapt','Modify','Put to use','Eliminate','Reverse'] }, desc: { zh: '提升創造力', en: 'Enhance creativity' }, example: { zh: '組合元素', en: 'Combine elements' } },
+            BLOG: { type: '結構型', keywords: { zh: ['背景','邏輯','大綱','目標'], en: ['Background','Logic','Outline','Goal'] }, desc: { zh: '內容創作連貫性', en: 'Content creation coherence' }, example: { zh: '大綱: 步驟1', en: 'Outline: Step 1' } },
+            SixThinkingHats: { type: '探索型', keywords: { zh: ['事實','情感','風險','益處','創造','流程'], en: ['Facts','Emotions','Risks','Benefits','Creativity','Process'] }, desc: { zh: '多樣化觀點', en: 'Diverse perspectives' }, example: { zh: '風險: 潛在問題', en: 'Risks: Potential issues' } },
+            CIDI: { type: '結構型', keywords: { zh: ['上下文','指示','細節','輸入'], en: ['Context','Instructions','Details','Input'] }, desc: { zh: '優化互動', en: 'Optimize interactions' }, example: { zh: '指示: 遵循步驟', en: 'Instructions: Follow steps' } },
+            SPEAR: { type: '結構型', keywords: { zh: ['開始','提供','解釋','詢問','重複'], en: ['Start','Provide','Explain','Ask','Repeat'] }, desc: { zh: '簡化請求', en: 'Simplify requests' }, example: { zh: '解釋: 為何', en: 'Explain: Why' } },
+            FewShot: { type: '探索型', keywords: { zh: ['提供例子'], en: ['Provide examples'] }, desc: { zh: '引導模型準確輸出', en: 'Guide accurate output' }, example: { zh: '例子: 範例1', en: 'Example: Sample 1' } },
+            ZeroShot: { type: '探索型', keywords: { zh: ['僅任務描述'], en: ['Task description only'] }, desc: { zh: '無例子簡單任務', en: 'Simple tasks without examples' }, example: { zh: '描述: 總結文字', en: 'Describe: Summarize text' } },
+            FOCUS: { type: '決策型', keywords: { zh: ['聚焦方法'], en: ['Focus methods'] }, desc: { zh: '增強決策清晰', en: 'Enhance decision clarity' }, example: { zh: '聚焦: 核心問題', en: 'Focus: Core issue' } },
+            RACE: { type: '決策型', keywords: { zh: ['Reach','Act','Convert','Engage'], en: ['Reach','Act','Convert','Engage'] }, desc: { zh: '優化溝通參與', en: 'Optimize communication engagement' }, example: { zh: 'Act: 行動呼籲', en: 'Act: Call to action' } },
+            BloomsTaxonomy: { type: '教學型', keywords: { zh: ['認知層級'], en: ['Cognitive levels'] }, desc: { zh: '教育內容開發', en: 'Educational content development' }, example: { zh: '層級: 分析', en: 'Level: Analyze' } }
+        };
+
+        function updateLanguage() {
+            document.getElementById('title').innerText = translations[lang].title;
+            document.getElementById('library-title').innerText = translations[lang].library;
+            document.getElementById('results-title').innerText = translations[lang].results;
+            document.getElementById('search').placeholder = translations[lang].search;
+            document.getElementById('theme').placeholder = translations[lang].theme;
+            document.getElementById('context').placeholder = translations[lang].context;
+            document.getElementById('gen-btn').innerText = translations[lang].generate;
+            document.getElementById('lang-toggle').innerText = lang === 'zh' ? 'English' : '中文';
+            document.getElementById('reset-btn').innerText = translations[lang].reset;
+            document.getElementById('framework-label').innerText = translations[lang].label_framework;
+            document.getElementById('theme-label').innerText = translations[lang].label_theme;
+            document.getElementById('context-label').innerText = translations[lang].label_context;
+            document.getElementById('format-label').innerText = translations[lang].label_format;
+            let noMsg = document.getElementById('no-result-msg');
+            if (noMsg) noMsg.innerText = translations[lang].no_result;
+            loadTemplates();
+        }
+
+        function loadTemplates() {
+            const library = document.getElementById('template-library');
+            const fwSelect = document.getElementById('framework');
+            library.innerHTML = '';
+            fwSelect.innerHTML = `<option value="">${translations[lang].select_framework}</option>`;
+
+            // 框架分組
+            const grouped = {};
+            Object.entries(frameworks).forEach(([key, fw]) => {
+                if (!grouped[fw.type]) grouped[fw.type] = [];
+                grouped[fw.type].push({ key, ...fw });
+            });
+
+            // 依類型顯示
+            Object.entries(frameworkTypes).forEach(([typeKey, typeObj]) => {
+                if (!grouped[typeKey]) return;
+                const section = document.createElement('div');
+                section.className = 'framework-type-section';
+                const title = document.createElement('div');
+                title.className = 'framework-type-title';
+                title.style.color = typeObj.color;
+                title.innerText = typeObj[lang] + ` (${translations[lang].type})`;
+                section.appendChild(title);
+
+                const container = document.createElement('div');
+                container.className = 'framework-type-container';
+
+                grouped[typeKey].forEach(fw => {
+                    fwSelect.innerHTML += `<option value="${fw.key}">${fw.key} (${typeObj[lang]})</option>`;
+                    const card = document.createElement('div');
+                    card.classList.add('template-card');
+                    card.dataset.key = fw.key.toLowerCase();
+                    card.dataset.type = typeKey;
+                    card.innerHTML = `<h3>${fw.key}</h3>
+                        <p><b>${translations[lang].type}:</b> ${typeObj[lang]}</p>
+                        <p><b>關鍵詞:</b> ${fw.keywords[lang].join(', ')}</p>
+                        <p><b>描述:</b> ${fw.desc[lang]}</p>
+                        <p><b>示例:</b> ${fw.example[lang]}</p>`;
+                    card.onclick = () => fwSelect.value = fw.key;
+                    container.appendChild(card);
+                });
+                section.appendChild(container);
+                library.appendChild(section);
+            });
+
+            filterTemplates();
+        }
+
+        function filterTemplates() {
+            const search = document.getElementById('search').value.toLowerCase();
+            let visible = false;
+            document.querySelectorAll('.template-card').forEach(card => {
+                // 支援中英文與類型、描述、關鍵字
+                const key = card.dataset.key.toLowerCase();
+                const fw = frameworks[card.dataset.key.toUpperCase()];
+                const type = frameworkTypes[fw.type][lang].toLowerCase();
+                const desc = fw.desc[lang].toLowerCase();
+                const example = fw.example[lang].toLowerCase();
+                const keywords = fw.keywords[lang].join(',').toLowerCase();
+                if (
+                    key.includes(search) ||
+                    type.includes(search) ||
+                    desc.includes(search) ||
+                    example.includes(search) ||
+                    keywords.includes(search)
+                ) {
+                    card.style.display = 'block';
+                    visible = true;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            // 類型分區隱藏判斷
+            document.querySelectorAll('.framework-type-section').forEach(section => {
+                const hasVisible = [...section.querySelectorAll('.template-card')].some(c => c.style.display !== 'none');
+                section.style.display = hasVisible ? 'block' : 'none';
+            });
+        }
+
+        function generatePrompt() {
+            const theme = document.getElementById('theme').value.trim();
+            const fw = document.getElementById('framework').value;
+            const context = document.getElementById('context').value.trim();
+            const format = document.getElementById('format').value;
+            if (!theme || !fw) {
+                highlightMissing(theme, fw);
+                return;
+            }
+            const template = frameworks[fw];
+            const structure = {};
+            template.keywords[lang].forEach(k => structure[k] = `[${translations[lang].theme}: ${theme} ${context ? translations[lang].context + ': ' + context : ''}]`);
+            let prompt = { theme, context, structure };
+            let output = '';
+            if (format === 'JSON') {
+                output = JSON.stringify(prompt, null, 2);
+            } else {
+                output = `# ${fw}\n\n**${translations[lang].theme}:** ${theme}\n**${translations[lang].context}:** ${context}\n\n## 結構\n${Object.entries(structure).map(([k, v]) => `- **${k}:** ${v}`).join('\n')}`;
+            }
+            addResult(output);
+        }
+
+        function highlightMissing(theme, fw) {
+            if (!theme) {
+                document.getElementById('theme').style.borderColor = 'red';
+            }
+            if (!fw) {
+                document.getElementById('framework').style.borderColor = 'red';
+            }
+            setTimeout(() => {
+                document.getElementById('theme').style.borderColor = '#007bff';
+                document.getElementById('framework').style.borderColor = '#007bff';
+            }, 1200);
+        }
+
+        function addResult(text) {
+            const results = document.getElementById('results');
+            const noMsg = document.getElementById('no-result-msg');
+            if (noMsg) noMsg.style.display = 'none';
+            const item = document.createElement('div');
+            item.classList.add('prompt-item');
+            const pre = document.createElement('pre');
+            pre.textContent = text;
+            const btn = document.createElement('button');
+            btn.className = 'copy-btn';
+            btn.type = 'button';
+            btn.textContent = translations[lang].copy;
+            btn.onclick = () => copyToClipboard(text);
+            item.appendChild(pre);
+            item.appendChild(btn);
+            results.prepend(item);
+            item.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => alert(lang === 'zh' ? '已複製' : 'Copied!'));
+        }
+
+        document.getElementById('mode-toggle').onclick = () => document.body.classList.toggle('dark-mode');
+        document.getElementById('lang-toggle').onclick = () => { lang = lang === 'zh' ? 'en' : 'zh'; updateLanguage(); };
+        document.getElementById('search').oninput = filterTemplates;
+        document.getElementById('reset-btn').onclick = () => {
+            const results = document.getElementById('results');
+            results.innerHTML = `<div id="no-result-msg" style="color:#888;">${translations[lang].no_result}</div>`;
+        };
+
+        updateLanguage();
+        loadTemplates();
+    </script>
+</body>
+</html>

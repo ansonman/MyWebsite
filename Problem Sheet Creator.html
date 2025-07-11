@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Problem Sheet Creator</title>
+    <style>
+        :root {
+            --primary-bg: #181d23;
+            --secondary-bg: #232a34;
+            --accent: #3498db;
+            --accent-hover: #217dbb;
+            --border: #2a333d;
+            --text-main: #f4f4f4;
+            --text-secondary: #bdbdbd;
+            --frame: #405674;
+            --shadow: 0 4px 24px rgba(0,0,0,0.40);
+            --radius: 16px;
+            --preview-bg: #232a34;
+        }
+        html, body {
+            background: var(--primary-bg);
+            color: var(--text-main);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            margin: 40px 0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--secondary-bg);
+            padding: 32px 32px 32px 32px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+        h1 {
+            text-align: center;
+            color: var(--accent);
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            letter-spacing: 1.5px;
+        }
+        h2 {
+            color: var(--accent);
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        p {
+            font-size: 1.1em;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+        #upload-section, #layout-section, #input-section, #summary-section {
+            margin-bottom: 30px;
+            padding: 24px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--secondary-bg);
+        }
+        input[type="file"], textarea, select {
+            width: 100%;
+            margin-bottom: 15px;
+            padding: 12px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1em;
+            background: var(--primary-bg);
+            color: var(--text-main);
+            transition: border 0.2s;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        select {
+            width: auto;
+            display: inline-block;
+            margin-left: 10px;
+            margin-bottom: 0;
+        }
+        .preview-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: var(--preview-bg);
+            border-radius: 8px;
+            padding: 10px 0 10px 10px;
+        }
+        .preview-frame {
+            background: #202832;
+            border-radius: 6px;
+            padding: 10px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .preview-img {
+            max-width: 180px;
+            height: auto;
+            border: 2px solid var(--border);
+            border-radius: 4px;
+            background: #191f26;
+        }
+        .preview-label {
+            color: var(--accent);
+            margin-top: 8px;
+            font-size: 1.1em;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+        .action-row {
+            margin-top: 16px;
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        button {
+            background: var(--accent);
+            color: var(--text-main);
+            padding: 13px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-top: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+            box-shadow: 0 2px 9px #0003;
+        }
+        button:hover {
+            background: var(--accent-hover);
+        }
+        #canvas {
+            border: 1.5px solid var(--frame);
+            margin-top: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 22px rgba(0,0,0,0.20);
+            max-width: 100%;
+            background: #fff;
+            display: block;
+        }
+        .problem-input {
+            margin-bottom: 22px;
+        }
+        .problem-input label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+            color: var(--accent);
+        }
+        .font-size-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+        .font-size-control label {
+            color: var(--accent);
+            font-weight: 500;
+        }
+        .credit {
+            margin-top: 40px;
+            text-align: center;
+            color: #6c7886;
+            font-size: 0.95em;
+            letter-spacing: 0.5px;
+        }
+        @media (max-width: 600px) {
+            .container { padding: 10px; }
+            #upload-section, #layout-section, #input-section, #summary-section { padding: 10px; }
+            h1 { font-size: 1.6em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Problem Sheet Creator</h1>
+        
+        <!-- Upload Section -->
+        <div id="upload-section">
+            <h2>Step 1: Upload Problem Images</h2>
+            <p>Upload one or more images. Each image will have its own problem input.</p>
+            <input type="file" id="image-upload" accept="image/*" multiple>
+            <div class="preview-container" id="preview-container"></div>
+            <div class="action-row">
+                <button id="clear-all-btn" type="button">Clear All</button>
+            </div>
+        </div>
+        
+        <!-- Layout Section -->
+        <div id="layout-section" style="display: none;">
+            <h2>Step 2: Review Layout</h2>
+            <p>The layout is based on the uploaded images. Proceed to input problems for each image.</p>
+        </div>
+        
+        <!-- Input Section -->
+        <div id="input-section" style="display: none;">
+            <h2>Step 3: Input Problems for Each Image</h2>
+            <div class="font-size-control">
+                <label for="font-size-select">Problem Font Size:</label>
+                <select id="font-size-select">
+                    <option value="16">16 px</option>
+                    <option value="18">18 px</option>
+                    <option value="20">20 px</option>
+                    <option value="24" selected>24 px (Default)</option>
+                    <option value="28">28 px</option>
+                    <option value="32">32 px</option>
+                </select>
+            </div>
+            <p>Enter the problem text for each image.<br>It will be displayed in red below the image in the final sheet.</p>
+            <div id="problems-input-container"></div>
+            <button id="generate-btn">Generate Professional Sheet</button>
+        </div>
+        
+        <!-- Summary Section -->
+        <div id="summary-section" style="display: none;">
+            <h2>Step 4: Professional Problem Sheet</h2>
+            <p>Below is the generated problem sheet image, combining all images with their respective problems, framed professionally.</p>
+            <canvas id="canvas"></canvas>
+            <div class="action-row">
+                <button id="download-btn" type="button">Download Sheet</button>
+                <button id="clear-all-btn-2" type="button">Clear All</button>
+            </div>
+        </div>
+        <div class="credit">© 2025 Problem Sheet Creator</div>
+    </div>
+
+    <script>
+        const uploadInput = document.getElementById('image-upload');
+        const previewContainer = document.getElementById('preview-container');
+        const layoutSection = document.getElementById('layout-section');
+        const inputSection = document.getElementById('input-section');
+        const summarySection = document.getElementById('summary-section');
+        const generateBtn = document.getElementById('generate-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        const problemsInputContainer = document.getElementById('problems-input-container');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const fontSizeSelect = document.getElementById('font-size-select');
+        const clearAllBtn = document.getElementById('clear-all-btn');
+        const clearAllBtn2 = document.getElementById('clear-all-btn-2');
+
+        let uploadedImages = [];
+        let maxWidth = 0;
+        let fontSize = Number(fontSizeSelect.value);
+
+        // 最大圖片寬度
+        const MAX_IMG_WIDTH = 800;
+
+        fontSizeSelect.addEventListener('change', () => {
+            fontSize = Number(fontSizeSelect.value);
+        });
+
+        function drawRoundedRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+            ctx.stroke();
+        }
+
+        // Canvas 斷行
+        function wrapText(ctx, text, x, y, maxWidth, lineHeight, font) {
+            if (font) ctx.font = font;
+            const words = text.split(' ');
+            let line = '';
+            let lines = [];
+            for(let n = 0; n < words.length; n++) {
+                const testLine = line + words[n] + ' ';
+                if (ctx.measureText(testLine).width > maxWidth && n > 0) {
+                    lines.push(line.trim());
+                    line = words[n] + ' ';
+                } else {
+                    line = testLine;
+                }
+            }
+            lines.push(line.trim());
+            lines = lines.flatMap(l => l.split('\n'));
+            lines.forEach(lineText => {
+                ctx.fillText(lineText, x, y);
+                y += lineHeight;
+            });
+            return lines.length;
+        }
+
+        // 預覽及輸入欄位
+        uploadInput.addEventListener('change', function(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                previewContainer.innerHTML = '';
+                problemsInputContainer.innerHTML = '';
+                uploadedImages = [];
+                maxWidth = 0;
+                let loadedCount = 0;
+                Array.from(files).forEach((file, index) => {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const img = new Image();
+                        img.src = event.target.result;
+                        img.onload = function() {
+                            let scale = img.width > MAX_IMG_WIDTH ? MAX_IMG_WIDTH / img.width : 1;
+                            let drawWidth = img.width * scale;
+                            let drawHeight = img.height * scale;
+                            uploadedImages[index] = {
+                                img: img,
+                                text: '',
+                                scale,
+                                drawWidth,
+                                drawHeight
+                            };
+                            maxWidth = Math.max(maxWidth, drawWidth);
+
+                            // 預覽
+                            const previewFrame = document.createElement('div');
+                            previewFrame.className = 'preview-frame';
+                            const previewImg = document.createElement('img');
+                            previewImg.src = event.target.result;
+                            previewImg.classList.add('preview-img');
+                            previewImg.style.width = drawWidth + "px";
+                            previewImg.style.height = "auto";
+                            const previewLabel = document.createElement('div');
+                            previewLabel.className = 'preview-label';
+                            previewLabel.innerText = `Image ${index+1}`;
+                            previewFrame.appendChild(previewImg);
+                            previewFrame.appendChild(previewLabel);
+                            previewContainer.appendChild(previewFrame);
+
+                            // 輸入欄位
+                            const inputDiv = document.createElement('div');
+                            inputDiv.classList.add('problem-input');
+                            const label = document.createElement('label');
+                            label.setAttribute('for', `problem-${index}`);
+                            label.textContent = `Problem for Image ${index + 1}:`;
+                            const textarea = document.createElement('textarea');
+                            textarea.id = `problem-${index}`;
+                            inputDiv.appendChild(label);
+                            inputDiv.appendChild(textarea);
+                            problemsInputContainer.appendChild(inputDiv);
+
+                            loadedCount++;
+                            if (loadedCount === files.length) {
+                                layoutSection.style.display = 'block';
+                                inputSection.style.display = 'block';
+                            }
+                        };
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+        });
+
+        generateBtn.addEventListener('click', function() {
+            if (uploadedImages.length === 0) return;
+            fontSize = Number(fontSizeSelect.value);
+
+            uploadedImages.forEach((imageItem, index) => {
+                const textarea = document.getElementById(`problem-${index}`);
+                imageItem.text = textarea.value || `Problem for Image ${index + 1}`;
+            });
+
+            const framePadding = 24;
+            const sectionSpacing = 56;
+            let canvasHeight = 110;
+            let canvasWidth = Math.min(Math.max(maxWidth + 100, 600), 1200);
+
+            ctx.font = `${fontSize}px Helvetica Neue, Arial, sans-serif`;
+            uploadedImages.forEach(item => {
+                let lineHeight = fontSize + 6;
+                let frameTextWidth = canvasWidth - 80 - 2 * framePadding;
+                let linesNeeded = 0;
+                ctx.save();
+                ctx.font = `${fontSize}px Helvetica Neue, Arial, sans-serif`;
+                linesNeeded = 0;
+                item.text.split('\n').forEach(line => {
+                    const words = line.split(' ');
+                    let txt = '';
+                    for (let i = 0; i < words.length; i++) {
+                        let test = txt + words[i] + ' ';
+                        if (ctx.measureText(test).width > frameTextWidth && i > 0) {
+                            linesNeeded++;
+                            txt = words[i] + ' ';
+                        } else {
+                            txt = test;
+                        }
+                    }
+                    linesNeeded++;
+                });
+                ctx.restore();
+                canvasHeight += item.drawHeight + (linesNeeded * lineHeight) + (framePadding * 2) + sectionSpacing;
+            });
+
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.font = 'bold 36px Helvetica Neue, Arial, sans-serif';
+            ctx.fillStyle = '#34495e';
+            ctx.textAlign = 'center';
+            ctx.fillText('Professional Problem Sheet', canvas.width / 2, 64);
+            ctx.textAlign = 'left';
+
+            let currentY = 110;
+            uploadedImages.forEach((item, idx) => {
+                const img = item.img;
+                const drawWidth = item.drawWidth;
+                const drawHeight = item.drawHeight;
+                const scale = item.scale;
+                const text = item.text;
+                const frameX = 40;
+                const frameWidth = canvas.width - 80;
+                const lineHeight = fontSize + 6;
+                const frameTextWidth = frameWidth - 2 * framePadding;
+
+                ctx.save();
+                ctx.font = `${fontSize}px Helvetica Neue, Arial, sans-serif`;
+                let lines = [];
+                text.split('\n').forEach(line => {
+                    const words = line.split(' ');
+                    let txt = '';
+                    for (let i = 0; i < words.length; i++) {
+                        let test = txt + words[i] + ' ';
+                        if (ctx.measureText(test).width > frameTextWidth && i > 0) {
+                            lines.push(txt.trim());
+                            txt = words[i] + ' ';
+                        } else {
+                            txt = test;
+                        }
+                    }
+                    lines.push(txt.trim());
+                });
+                ctx.restore();
+
+                const frameHeight = drawHeight + (lines.length * lineHeight) + (framePadding * 2);
+
+                ctx.strokeStyle = '#405674';
+                ctx.lineWidth = 2.5;
+                drawRoundedRect(ctx, frameX, currentY, frameWidth, frameHeight, 12);
+
+                const imgX = (canvas.width - drawWidth) / 2;
+                const imgY = currentY + framePadding;
+                ctx.drawImage(img, imgX, imgY, drawWidth, drawHeight);
+
+                ctx.font = `${fontSize}px Helvetica Neue, Arial, sans-serif`;
+                ctx.fillStyle = 'red';
+                let textY = currentY + framePadding + drawHeight + lineHeight;
+                lines.forEach(lineText => {
+                    ctx.fillText(lineText, frameX + framePadding, textY);
+                    textY += lineHeight;
+                });
+
+                currentY += frameHeight + sectionSpacing;
+            });
+
+            ctx.strokeStyle = '#8eaccf';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(16, 16, canvas.width - 32, canvas.height - 32);
+
+            summarySection.style.display = 'block';
+            summarySection.scrollIntoView({ behavior: "smooth" });
+        });
+
+        downloadBtn.addEventListener('click', function() {
+            const link = document.createElement('a');
+            link.download = 'professional-problem-sheet.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+
+        // Clear All 功能
+        function clearAll() {
+            uploadedImages = [];
+            maxWidth = 0;
+            previewContainer.innerHTML = '';
+            problemsInputContainer.innerHTML = '';
+            layoutSection.style.display = 'none';
+            inputSection.style.display = 'none';
+            summarySection.style.display = 'none';
+            canvas.width = 0;
+            canvas.height = 0;
+            uploadInput.value = '';
+            fontSizeSelect.value = "24";
+            fontSize = 24;
+            window.scrollTo({top: 0, behavior: "smooth"});
+        }
+        clearAllBtn.addEventListener('click', clearAll);
+        clearAllBtn2.addEventListener('click', clearAll);
+    </script>
+</body>
+</html>
